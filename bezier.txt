@@ -125,3 +125,1009 @@ int main(int argc, char *argv[])
 
 //-----------------------------
 
+//menu driven
+
+#include <iostream>
+#include <GL/glut.h>
+#include <math.h>
+
+int n=0, flag=0, pX[100], pY[100];
+
+struct GLColor {
+	GLfloat red;
+	GLfloat green;
+	GLfloat blue;
+};
+
+GLColor colors[6] = {
+{0.0f, 0.0f, 0.0f}, // Black
+{1.0f, 0.0f, 0.0f}, // Red
+{0.0f, 1.0f, 0.0f}, // Green
+{0.0f, 0.0f, 1.0f}, // Blue
+{1.0f, 1.0f, 0.0f}, // Yellow
+{1.0f, 0.0f, 1.0f} // Purple
+};
+
+GLColor color = colors[0]; // Default: Black
+
+void init() {
+	glClearColor(1.0f, 1.0f, 1.0f, 0);
+	glColor3f(color.red, color.green, color.blue);
+	glPointSize(1.0f);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluOrtho2D(0.0, 640.0, 0.0, 480.0);
+}
+
+void display(void) {
+
+}
+
+void drawPixel(int x,int y){
+    glColor3f(color.red, color.green, color.blue);
+    glBegin(GL_POINTS);
+        glVertex2f(x,y);
+    glEnd();
+    glFlush();
+}
+
+void drawPolygon(){
+	glClear(GL_COLOR_BUFFER_BIT);
+    glColor3d(1,0,0);
+
+    glBegin(GL_LINES);
+    for(int i=0;i<n;i++)
+    {
+        int k=(i+1)%n;
+        glVertex2f(pX[i], pY[i]);
+        glVertex2f(pX[k], pY[k]);
+    }
+    glEnd();
+    glFlush();
+}
+
+
+void boundaryFill(int x, int y, float* fillColor, float* bc)
+{
+    float color[3];
+    glReadPixels(x,y,1.0,1.0,GL_RGB,GL_FLOAT,color);
+    
+    if((color[0]!=bc[0] || color[1]!=bc[1] || color[2]!=bc[2])&&(
+     color[0]!=fillColor[0] || color[1]!=fillColor[1] || color[2]!=fillColor[2]))
+    {
+        glColor3f(fillColor[0],fillColor[1],fillColor[2]);
+        glBegin(GL_POINTS);
+            glVertex2i(x,y);
+        glEnd();
+        glFlush();
+        boundaryFill(x+1,y,fillColor,bc);
+        boundaryFill(x-1,y,fillColor,bc);
+        boundaryFill(x,y+1,fillColor,bc);
+        boundaryFill(x,y-1,fillColor,bc);
+    }
+}
+
+
+void floodFill(int x,int y,int R,int G,int B){
+    if(x<0 || x>=640 || y<0 || y>=480){
+        return ;
+    }
+
+    int redPix, greenPix, bluePix;
+    unsigned char pixel[4];
+    glReadPixels(x, y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pixel);
+    redPix=(int)pixel[0];
+    greenPix=(int)pixel[1];
+    bluePix=(int)pixel[2];
+
+    if(redPix!=R || greenPix!=G || bluePix!=B){
+        return ;
+    }
+
+    drawPixel(x,y);
+    floodFill(x+1, y, redPix, greenPix, bluePix);
+    floodFill(x, y+1, redPix, greenPix, bluePix);
+    floodFill(x-1, y, redPix, greenPix, bluePix);
+    floodFill(x, y-1, redPix, greenPix, bluePix);
+
+    return ;
+}
+
+
+void mouseFn(int button, int state, int x, int y)
+{
+	if(button==GLUT_LEFT_BUTTON && state==GLUT_DOWN){
+        pX[n]=x;
+        pY[n]=480-y;
+        n++;
+        if (n>=3)
+        {
+        	drawPolygon();
+        	flag = 1;
+        }
+    }
+}
+
+void mouseFnBF(int button,int state,int x,int y)
+{
+	    
+    if(button==GLUT_LEFT_BUTTON && state==GLUT_DOWN)
+    {
+        float bCol[] = {1,0,0};
+        float col[]={color.red, color.green, color.blue};
+        //glReadPixels(x,y,1.0,1.0,GL_RGB,GL_FLOAT,intCol);
+        boundaryFill(x,480-y,col,bCol);
+        flag=0;
+        n=0;
+        glutMouseFunc(mouseFn);
+    }
+}
+
+void mouseFnFF(int button,int state,int x,int y)
+{
+	
+    if(button==GLUT_LEFT_BUTTON && state==GLUT_DOWN)
+    {
+        unsigned char pixel[4];
+        glReadPixels(x, y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pixel);
+        int R,G,B;
+        R=(int)pixel[0];
+        G=(int)pixel[1];
+        B=(int)pixel[2];
+        floodFill(x,480-y,R,G,B);
+        n=0;
+        flag=0;
+        glutMouseFunc(mouseFn);
+    }
+}
+
+
+
+void mainMenuHandler(int choice) {
+	switch(choice) {
+	
+		case 1: // Boundary Fill
+			glutMouseFunc(mouseFnBF);
+		break;
+
+		case 2: // Flood Fill
+			glutMouseFunc(mouseFnFF);
+		break;
+
+		case 3: // Scan Line (YX)
+			exit(0);
+		break;
+
+		case 4: // Exit
+			exit(0);
+		break;
+	}
+}
+
+void subMenuHandler(int choice) {
+	color = colors[choice];
+	//glColor3f(color);
+}
+
+int main(int argc, char **argv) {
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_SINGLE|GLUT_RGB);
+	glutInitWindowPosition(200, 200);
+	glutInitWindowSize(640, 480);
+	glutCreateWindow("OpenGL Fill Algorithms ");
+	glutDisplayFunc(display);
+	init();
+	glutMouseFunc(mouseFn);
+
+	int subMenu = glutCreateMenu(subMenuHandler);
+	glutAddMenuEntry("Default", 0);
+	glutAddMenuEntry("Red", 1);
+	glutAddMenuEntry("Green", 2);
+	glutAddMenuEntry("Blue", 3);
+	glutAddMenuEntry("Yellow", 4);
+	glutAddMenuEntry("Purple", 5);
+
+	glutCreateMenu(mainMenuHandler);
+	glutAddSubMenu("Change Color", subMenu);
+	glutAddMenuEntry("Boundary Fill", 1);
+	glutAddMenuEntry("FloodFill", 2);
+	glutAddMenuEntry("Scan Line (YX)", 3);
+	glutAddMenuEntry("Exit", 4);
+
+	glutAttachMenu(GLUT_RIGHT_BUTTON);
+	glutMainLoop();
+
+	return 0;
+}
+//----------------------------------------
+//Scan Line
+#include<windows.h>
+#include<GL/glut.h>
+#include<vector>
+#include<iostream>
+
+using namespace std;
+
+struct Point
+{
+    float x, y;
+};
+
+vector<Point> p;
+vector<Point> inter;
+
+int i=0, j=0;
+
+void init()
+{
+    glClearColor(1.0, 1.0, 1.0, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColor3f(0.0, 0.0, 1.0);
+    gluOrtho2D(0.0, 500.0, 0.0, 500.0);
+    glFlush();
+}
+
+void display()
+{
+
+}
+
+void sort1()
+{
+    int n=inter.size();
+    for(int k=0; k<n-1; k++)
+    {
+        for (int j=k+1; j<n; j++)
+        {
+            if(inter[k].x>inter[k+1].x)
+            {
+                Point temp=inter[k];
+                inter[k]=inter[k+1];
+                inter[k+1]=temp;
+            }
+        }
+    }
+}
+
+void add_inter(Point p1, Point p2, float k)
+{
+    if(k>=min(p1.y, p2.y) && k<=max(p1.y, p2.y))
+    {
+        float m=(p2.y-p1.y)/(p2.x-p1.x);
+        float inter1=p1.x+(1/m)*(k-p1.y);
+        Point in;
+        in.x=inter1;
+        in.y=k;
+        inter.push_back(in);
+        sort1();
+    }
+
+}
+
+void fillPoly()
+{
+    float xmin=640, xmax=0, ymin=480, ymax=0;
+    for(int i=0; i<p.size(); i++)
+    {
+        if(p[i].x<xmin)
+            xmin=p[i].x;
+        else if(p[i].x>xmax)
+            xmax=p[i].x;
+        if(p[i].y<ymin)
+            ymin=p[i].y;
+        else if(p[i].y>ymax)
+            ymax=p[i].y;
+    }
+    float k=ymin;
+    while(k<=ymax)
+    {
+        //cout<<k;
+        for(int i=0; i<p.size(); i++)
+        {
+            Point p1=p[i];
+            Point p2=p[(i+1)%p.size()];
+            add_inter(p1, p2, k);
+        }
+        for(int i=0; i<inter.size(); i+=2)
+        {
+            Point p1=inter[i];
+            Point p2=inter[i+1];
+            cout<<p1.x<<" "<<p2.x<<"\n";
+            float x=p1.x;
+            while(x<p2.x)
+            {
+                cout<<"in"<<endl;
+                glColor3f(1, 0, 0);
+                glBegin(GL_POINTS);
+                    glVertex2f(x, k);
+                glEnd();
+                glFlush();
+                x+=1;
+            }
+        }
+        k+=1;
+        inter.clear();
+    }
+}
+
+void drawPoly()
+{
+
+    glClear(GL_COLOR_BUFFER_BIT);
+    //drawBox();
+    glColor3f(1.0, 0.0, 0.0);
+    glBegin(GL_LINE_LOOP);
+    for(int k=0; k<p.size(); k++)
+    {
+        //cout<<pX[k]<<" "<<pY[k]<<endl;
+        glVertex2f(p[k].x, p[k].y);
+    }
+    glEnd();
+    glFlush();
+}
+
+void mouseFn(int button, int state, int x, int y)
+{
+    y=500-y;
+    if(button==GLUT_LEFT && state==GLUT_DOWN)
+    {
+            Point p1;
+            p1.x=x;
+            p1.y=y;
+            p.push_back(p1);
+            j++;
+            if (j>=3)
+            {
+                //glColor3f(1.0, 0.0, 0.0);
+                drawPoly();
+            }
+    }
+
+    if (button==GLUT_RIGHT_BUTTON && state==GLUT_DOWN)
+    {
+        fillPoly();
+    }
+}
+
+
+int main(int argc,char **argv)
+{
+    glutInit(&argc,argv);
+    glutInitWindowPosition(100,100);
+    glutInitWindowSize(500,500);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutCreateWindow("Odd parity");
+    init();
+    glutDisplayFunc(display);
+    glutMouseFunc(mouseFn);
+    glutMainLoop();
+    return 0;
+}
+//-----------------------------------
+//flower
+
+#include <GL/glut.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<math.h>
+#define PI 3.1415926536
+
+void clip(float,float,float);
+
+float xc[100],yc[100],t=0,c=0.0002;
+
+static int n=4,r=3;
+float k=9;
+void line(float a, float b, float c, float d)
+{
+   
+    glBegin(GL_LINES); 
+    glVertex2f(a,b);
+    glVertex2f(c,d);     
+       glEnd();
+    glutPostRedisplay();
+    glFlush();
+   
+   
+}
+void plot_point(float a, float b)
+{
+   
+    glBegin(GL_POINTS); 
+    glVertex2f(a,b);    
+       glEnd();
+    glFlush();
+     glutPostRedisplay();
+   
+   
+}
+void foo(int i,float x0, float y0,float x_prev,float y_prev){
+    float a,b;
+    if(i<r)
+    {a=(k*x0+x_prev)/(k+1);
+    b=(k*y0+y_prev)/(k+1);
+    x0=a;
+    y0=b;
+    k-=1;
+    }
+
+}
+
+void coords(int x0,int y0,int x1,int y1,int x2,int y2,int x3,int y3)
+{
+    float x,y;
+    while(t<=1)
+    {
+    x=(x0*(1-t)*(1-t)*(1-t))+(3*x1*(1-t)*(1-t)*t)+(3*t*t*(1-t)*x2)+(t*t*t*x3);
+    y=(y0*(1-t)*(1-t)*(1-t))+(3*y1*(1-t)*(1-t)*t)+(3*t*t*(1-t)*y2)+(t*t*t*y3);   
+    t+=c;
+    plot_point(x,y);
+    }   
+    t=0;
+}
+
+void petal()
+{
+	glColor3f(1,1,1);
+	glBegin(GL_LINE_LOOP);
+	glVertex2f(-110,110);
+	glVertex2f(110,110);
+	glVertex2f(110,-110);
+	glVertex2f(-110,-110);
+	glFlush();
+	glEnd();
+
+	glColor3f(1,0,0);
+	//coords(-20,0,-130,130,-50,50,10,65);
+	coords(-5,0,-130,130,130,130,5,0);
+	coords(0,5,130,130,130,-130,0,-5);
+	coords(-5,0,-130,-130,130,-130,5,0);
+	coords(0,5,-130,130,-130,-130,0,-5);
+
+	glColor3f(0,1,0);
+	coords(-2,0,-110,110,110,110,2,0);
+	coords(0,2,110,110,110,-110,0,-2);
+	coords(-2,0,-110,-110,110,-110,2,0);
+	coords(0,2,-110,110,-110,-110,0,-2);
+
+	glColor3f(0,0,1);
+	coords(-2,0,-90,90,90,90,2,0);
+	coords(0,2,90,90,90,-90,0,-2);
+	coords(-2,0,-90,-90,90,-90,2,0);
+	coords(0,2,-90,90,-90,-90,0,-2);
+
+	//coords(-20,0,-130,-130,-50,-50,10,-65);
+	glFlush();
+}
+
+
+void init()
+{
+    glClearColor(0, 0, 0,0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(-250, 250, -250,250);
+}
+void keypress(unsigned char key,int x, int y){
+    t=0;
+    glClear(GL_COLOR_BUFFER_BIT);
+    if(key=='i'){
+    glClearColor(0, 0, 0,0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    petal();
+
+}
+}
+int main(int argc, char **argv)
+{
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowPosition(30, 50);
+    glutInitWindowSize(500, 500);   
+    glutCreateWindow("Flower");
+    init();
+    
+    glutKeyboardFunc(keypress);
+    glutMainLoop();
+    return 0;
+}
+//----------------------------------
+//boundary fill
+#include <GL/glut.h>
+#include <iostream>
+#include <math.h>
+#include <GL/glut.h>
+
+using namespace std;
+int n=0, flag=0, pX[100], pY[100];
+void init()
+{
+    glClearColor(1.0,1.0,1.0,0.0);
+    glMatrixMode(GL_PROJECTION);
+    gluOrtho2D(0,640,0,480);
+}
+
+void drawPolygon(){
+    glColor3d(1,0,0);
+
+    glBegin(GL_LINES);
+    for(int i=0;i<n;i++)
+    {
+        int k=(i+1)%n;
+        glVertex2f(pX[i], pY[i]);
+        glVertex2f(pX[k], pY[k]);
+    }
+    glEnd();
+    glFlush();
+}
+
+void boundaryFill(int x, int y, float* fillColor, float* bc)
+{
+    float color[3];
+    glReadPixels(x,y,1.0,1.0,GL_RGB,GL_FLOAT,color);
+    
+    if((color[0]!=bc[0] || color[1]!=bc[1] || color[2]!=bc[2])&&(
+     color[0]!=fillColor[0] || color[1]!=fillColor[1] || color[2]!=fillColor[2]))
+    {
+        glColor3f(fillColor[0],fillColor[1],fillColor[2]);
+        glBegin(GL_POINTS);
+            glVertex2i(x,y);
+        glEnd();
+        glFlush();
+        boundaryFill(x+1,y,fillColor,bc);
+        boundaryFill(x-1,y,fillColor,bc);
+        boundaryFill(x,y+1,fillColor,bc);
+        boundaryFill(x,y-1,fillColor,bc);
+    }
+}
+
+void mouseFn(int button,int state,int x,int y)
+{
+    if(button==GLUT_LEFT_BUTTON && state==GLUT_DOWN){
+        pX[n]=x;
+        pY[n]=480-y;
+        n++;
+    }
+    if(flag==0 && button==GLUT_RIGHT_BUTTON && state==GLUT_DOWN)
+    {
+        drawPolygon();
+        n=0;
+        flag=1;
+    }
+    else if(flag==1 && button==GLUT_RIGHT_BUTTON && state==GLUT_DOWN)
+    {
+        float bCol[] = {1,0,0};
+        float color[] = {0,0,1};
+        //glReadPixels(x,y,1.0,1.0,GL_RGB,GL_FLOAT,intCol);
+        boundaryFill(x,480-y,color,bCol);
+        flag=0;
+    }
+}
+
+
+void display()
+{
+
+}
+
+int main(int argc, char** argv){
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE|GLUT_RGB);
+    glutInitWindowSize(640,480);
+    glutInitWindowPosition(200,200);
+    glutCreateWindow("Boundary fill");
+    glutDisplayFunc(display);
+    glutMouseFunc(mouseFn);
+    init();
+    glutMainLoop();
+    return 0;
+}
+//---------------------------------------------
+//floodfill
+#include <GL/glut.h>
+#include <stdlib.h>
+#include <bits/stdc++.h>
+#include <iostream>
+
+using namespace std;
+
+int n=0, flag=0, pX[100], pY[100];
+
+void init(){
+    glClearColor(0,0,0,1);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0,640,0,480);
+}
+
+static void display(void)
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+    glFlush();
+}
+
+void drawPixel(int x,int y){
+    glColor3d(1,0,1);
+    glBegin(GL_POINTS);
+        glVertex2f(x,y);
+    glEnd();
+    glFlush();
+}
+
+void drawPolygon(){
+    glColor3d(0,1,1);
+
+    glBegin(GL_LINES);
+    for(int i=0;i<n;i++){
+        int k=(i+1)%n;
+        glVertex2f(pX[i], pY[i]);
+        glVertex2f(pX[k], pY[k]);
+    }
+    glEnd();
+
+    glFlush();
+}
+
+void floodFill(int x,int y,int R,int G,int B){
+    if(x<0 || x>=640 || y<0 || y>=480){
+        return ;
+    }
+
+    int redPix, greenPix, bluePix;
+    unsigned char pixel[4];
+    glReadPixels(x, y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pixel);
+    redPix=(int)pixel[0];
+    greenPix=(int)pixel[1];
+    bluePix=(int)pixel[2];
+
+    if(redPix!=R || greenPix!=G || bluePix!=B){
+        return ;
+    }
+
+    drawPixel(x,y);
+    floodFill(x+1, y, redPix, greenPix, bluePix);
+    floodFill(x, y+1, redPix, greenPix, bluePix);
+    floodFill(x-1, y, redPix, greenPix, bluePix);
+    floodFill(x, y-1, redPix, greenPix, bluePix);
+
+    return ;
+}
+
+void mouseFn(int button,int state,int x,int y)
+{
+    if(button==GLUT_LEFT_BUTTON && state==GLUT_DOWN){
+        pX[n]=x;
+        pY[n]=480-y;
+        n++;
+    }
+    if(flag==0 && button==GLUT_RIGHT_BUTTON && state==GLUT_DOWN)
+    {
+        drawPolygon();
+        n=0;
+        flag=1;
+    }
+    else if(flag==1 && button==GLUT_RIGHT_BUTTON && state==GLUT_DOWN)
+    {
+        unsigned char pixel[4];
+        glReadPixels(x, y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pixel);
+        int R,G,B;
+        R=(int)pixel[0];
+        G=(int)pixel[1];
+        B=(int)pixel[2];
+        floodFill(x,480-y,R,G,B);
+        n=0;
+        flag=0;
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    glutInit(&argc, argv);
+    glutInitWindowSize(640,480);
+    glutInitWindowPosition(10,10);
+    glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
+
+    glutCreateWindow("Flood Fill");
+    init();
+    glutDisplayFunc(display);
+    glutMouseFunc(mouseFn);
+    glutMainLoop();
+
+    return EXIT_SUCCESS;
+}
+//------------------------------------
+//sHodgeman
+#include<GL/glut.h>
+#include<math.h>
+#include <iostream>
+#include <list>
+#include <vector>
+using namespace std;
+
+
+void init(){
+    glClearColor(1.0,1.0,1.0,1.0);
+    glMatrixMode(GL_PROJECTION);
+    gluOrtho2D(0,640,0,480);
+}
+
+int xmin = 0,ymin = 0,xmax = 0,ymax = 0;
+int enter = 1,sz,stFlag=1;
+
+float** pts;
+
+class points
+{
+    int x;
+    int y;
+    public:
+    points(int x,int y)
+    {
+        this->x = x;
+        this->y = y;
+    }
+
+    int getx()
+    {
+        return x;
+    }
+
+    int gety()
+    {
+        return y;
+    }
+};
+
+points *s, *p;
+list <points*> in;
+list <points*> outer;
+
+void drawPolygon(){
+
+    glBegin(GL_LINE_LOOP);
+    pts = new float*[in.size()];
+    for(int i=0; i<in.size(); i++)
+    {
+        pts[i] = new float[2];
+    }
+    sz = in.size();
+    while(in.size()>0)
+    {
+        points* temp = in.front();
+        pts[in.size()-1][0] = temp->getx();
+        pts[in.size()-1][1] = temp->gety();
+        glVertex2i(temp->getx(),temp->gety());
+        in.pop_front();
+    }
+    glEnd();
+    glFlush();
+}
+
+void redraw(){
+    glClear(GL_COLOR_BUFFER_BIT);
+    glBegin(GL_LINE_LOOP);
+    for(int i=0; i<sz; i++){
+        glVertex2i(pts[i][0],pts[i][1]);
+    }
+    glEnd();
+    glFlush();
+    glColor3f(0,0,0);
+    glBegin(GL_LINE_LOOP);
+        glVertex2i(xmin,ymin);
+        glVertex2i(xmin,ymax);
+        glVertex2i(xmax,ymax);
+        glVertex2i(xmax,ymin);
+    glEnd();
+    glFlush();
+    glColor3f(1,0,0);
+    glLineWidth(1.0);
+}
+
+//clip edge cases  : 1-r, 2-b, 3-l, 4-t
+int inside(int x, int y, int clip_edge){
+    switch(clip_edge){
+        case 1:
+        	if (x<xmax)
+        		return 1;
+        	else
+        		return 0;
+        	break;
+        case 2:
+        	if (y>ymax)
+        		return 1;
+        	else
+        		return 0;
+        	break;
+        case 3:
+        	if (x>xmin)
+        		return 1;
+        	else
+        		return 0;
+        	break;
+        case 4:
+        	if (y<ymin)
+        		return 1;
+        	else
+        		return 0;
+        	break;
+        
+        default:
+        	return 0;
+        	break;
+    }
+}
+
+points* intersect(points* S, points* P, int clip_edge){
+    float m; //div by zero error
+    if((P->getx()-S->getx())==0)
+        m = 0;
+    else
+        m = (float) (P->gety()-S->gety())/(P->getx()-S->getx());
+
+    float c = (float) (S->gety()) - (m*S->getx());
+	points* result;
+    if(clip_edge==1)
+    {
+    	int x = xmax;
+    	int y = (m*x)+c;
+    	result = (new points(x,y));
+    }
+    if(clip_edge==2)
+    {
+    	int y = ymax;
+    	int x; 
+    	if(m==0) 
+    		x = P->getx(); 
+    	else
+    		x = (y-c)/m;
+    	result =  (new points(x,y));
+    }
+    if(clip_edge==3)
+    {
+    	int x = xmin;
+    	int y = (m*x)+c;
+    	result =  (new points(x,y));
+    }
+    if(clip_edge==4)
+    {
+    	int y = ymin;
+    	int x;
+    	if(m==0)
+    		x = P->getx();
+    	else
+    		x = (y-c)/m;
+    	result =  (new points(x,y));
+    }
+	return result;
+}
+
+float** outerToIn(float** inner, list<points*> out)
+{
+    inner = new float*[out.size()];
+    for(int i=0; i<out.size(); i++){
+        inner[i] = new float[2];
+    }
+    sz = out.size();
+    while(out.size()>0){
+        points* temp = out.front();
+        inner[out.size()-1][0] = temp->getx();
+        inner[out.size()-1][1] = temp->gety();
+        out.pop_front();
+    }
+    out.clear();
+    return inner;
+} 
+
+float** sHodgeman(float** inP, list<points*> out,int clip_edge)
+{
+     
+    s = new points(inP[sz-1][0],inP[sz-1][1]);
+    for(int j=0; j<sz; j++){
+        p = new points(inP[j][0],inP[j][1]);
+         
+        if(inside(p->getx(),p->gety(),clip_edge)) // case 1 & 4
+        { 
+            if(inside(s->getx(),s->gety(),clip_edge)){ // case 1
+                out.push_front(new points(p->getx(),p->gety()));
+                 
+            }
+            else{ // case 4
+                points* temp = intersect(s,p,clip_edge); 
+                out.push_front(temp);
+                out.push_front(p);
+            }
+        }
+        else if(inside(s->getx(),s->gety(),clip_edge)){ //case 2
+            points* temp = intersect(s,p,clip_edge); 
+            out.push_front(temp);
+        }
+        else{
+            //cout<<"\n";
+        }
+        s = p;
+    }
+    inP = outerToIn(inP,out);
+    return inP;
+}
+
+void key(unsigned char key_t, int x, int y)
+{
+    if(key_t=='d'){
+        enter = -1;
+        drawPolygon();
+        in.clear();
+    }
+    if(key_t=='c'){
+        pts = sHodgeman(pts,outer,1);
+        pts = sHodgeman(pts,outer,2);
+        pts = sHodgeman(pts,outer,3);
+        pts = sHodgeman(pts,outer,4);
+        redraw();
+    }
+}
+
+void mouse(int button, int state, int x, int y)
+{
+    y = 480-y;
+    if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && enter)
+    {
+            points* temp = new points(x,y);
+            in.push_front(temp);
+    }
+
+}
+
+void windowStart(GLint x, GLint y)
+{
+    y = 480-y;
+    if(enter == -1 && stFlag){
+        xmin = x;
+        ymin = y;
+        stFlag = 0;
+    }
+    else{
+        xmax = x;
+        ymax = y;
+    }
+    redraw();
+}
+
+void windowEnd(GLint x, GLint y)
+{
+    y = 480-y;
+    if(enter==-1 && stFlag==0)
+    {
+        xmax = x;
+        ymax = y;
+        stFlag = 1;
+        redraw();
+    }
+}
+
+void display()
+{
+    glPointSize(2);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColor3f(1,0,0);
+}
+
+int main(int argc, char** argv)
+{
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE|GLUT_RGB);
+    glutInitWindowSize(640,480);
+    glutInitWindowPosition(200,200);
+    glutCreateWindow("SutherLand Hodgeman");
+    glutDisplayFunc(display);
+    glutMouseFunc(mouse);
+    glutMotionFunc(windowStart);
+    glutPassiveMotionFunc(windowEnd);
+    glutKeyboardFunc(key);
+    init();
+    glutMainLoop();
+    return 0;
+}
+//---------------------------------------------------------
