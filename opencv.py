@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Apr 12 19:05:25 2024
-
-@author: maana
-"""
 
 
 import cv2
