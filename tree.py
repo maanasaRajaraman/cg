@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Apr 12 18:41:33 2024
 
-@author: maana
-"""
 
 import turtle
 
