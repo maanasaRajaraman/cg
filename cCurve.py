@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Apr 12 17:42:04 2024
-
-@author: maana
-"""
 
 from turtle import *
 color('red')
