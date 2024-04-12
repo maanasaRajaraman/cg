@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Apr 12 17:26:38 2024
 
-@author: maana
-"""
 
 import turtle
 import math
