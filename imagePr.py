@@ -164,6 +164,12 @@ def split(image):
     merge = cv2.merge([r, g, b])
     cv2.imshow("merged", merge)
     
+def add_text():
+    blank_img = np.zeros(shape=(600,600), dtype=np.int16)
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    cv2.putText(blank_img, text='ABCDE', org=(40,350), fontFace=font, fontScale=5, color=(255,255,255), thickness=25)
+    return blank_img    
+    
 image = cv2.imread('p2.jpg')
 cv2.imshow('img', image)
 #blackAndWhite(image)
