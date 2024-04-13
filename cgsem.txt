@@ -9,3 +9,8 @@ sier.py
 snowflake.py
 terrain.py
 tree.py
+shapes.py
+cherry.py
+solar.cpp
+cuboid.cpp
+car.cpp
