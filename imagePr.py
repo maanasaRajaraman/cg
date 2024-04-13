@@ -31,6 +31,8 @@ def histogram(image):
     plt.show()
 
 def histEq(image):
+    image = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+    #cv2.imshow('Gray Image',grayimageImage)
     cv2.imshow('Gray Scale Image', image)
     cv2.waitKey(0)
     equalized = cv2.equalizeHist(image)
@@ -141,6 +143,31 @@ def hitMiss(image):
     cv2.imshow('Hit Miss Image',hitMissImage)
     cv2.waitKey(0)
 
-
-image = cv2.imread('p1.jpg')
-blackAndWhite(image)
+def createNewImg():
+    height, width = 1080, 1920
+    b, g, r = 0x3E, 0x88, 0xE5  # orange
+    image = np.zeros((height, width, 3), np.uint8)
+    image[:, :, 0] = b
+    image[:, :, 1] = g
+    image[:, :, 2] = r
+    
+    cv2.imshow("A New Image", image)
+    cv2.waitKey(0)
+        
+def split(image):
+    
+    b, g, r = cv2.split(image)
+    cv2.imshow("blue", b)
+    cv2.imshow("green", g)
+    cv2.imshow("red", r)
+    
+    merge = cv2.merge([r, g, b])
+    cv2.imshow("merged", merge)
+    
+image = cv2.imread('p2.jpg')
+cv2.imshow('img', image)
+#blackAndWhite(image)
+#createNewImg()
+#split(image)
+histEq(image)
+histogram(image)
