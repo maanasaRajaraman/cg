@@ -169,6 +169,17 @@ def add_text():
     font = cv2.FONT_HERSHEY_SIMPLEX
     cv2.putText(blank_img, text='ABCDE', org=(40,350), fontFace=font, fontScale=5, color=(255,255,255), thickness=25)
     return blank_img    
+
+def draw_img():
+    photo=np.zeros((600, 600, 3))
+    cv2.circle(photo, center=(250, 100), radius=75, color=(255, 0, 0), thickness=-1)
+    photo[175:195, 240:260]=[0, 0, 255]
+    photo[195:325, 150:350]=[255, 0, 0]
+    photo[325:475, 295:305]=[0, 255, 0]
+    photo[325:475, 195:205]=[0, 255, 0]
+    photo[195:205, 350:450]=[0, 0, 255]
+    photo[195:205, 50:150]=[0, 0, 255]
+    cv2.imshow(photo)
     
 image = cv2.imread('p2.jpg')
 cv2.imshow('img', image)
@@ -177,3 +188,4 @@ cv2.imshow('img', image)
 #split(image)
 histEq(image)
 histogram(image)
+
